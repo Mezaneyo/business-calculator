@@ -1,0 +1,34 @@
+<form method="post" action="{{ action }}" id="itemForm">
+  <div class="row g-2">
+    <div class="col-12"><label class="form-label mb-0">Item name</label>
+      <input class="form-control" name="name" placeholder="e.g. Rice 25kg bag" value="{{ item.name if item }}" required></div>
+    <div class="col-6"><label class="form-label mb-0">Quantity bought</label>
+      <input class="form-control calc" name="bought" type="number" step="any" min="0.01" value="{{ item.bought|num if item }}" required></div>
+    <div class="col-6"><label class="form-label mb-0">Quantity sold</label>
+      <input class="form-control calc" name="sold" type="number" step="any" min="0" value="{{ item.qty|num if item }}" required></div>
+    <div class="col-6"><label class="form-label mb-0">Buying price (each)</label>
+      <input class="form-control calc" name="buy" type="number" step="any" min="0" value="{{ item.buy|num if item }}" required></div>
+    <div class="col-6"><label class="form-label mb-0">Selling price (each)</label>
+      <input class="form-control calc" name="sell" type="number" step="any" min="0" value="{{ item.sell|num if item }}" required></div>
+    <div class="col-12"><label class="form-label mb-0">Extra costs (MK) - transport, packaging</label>
+      <input class="form-control calc" name="extra" type="number" step="any" min="0" value="{{ item.extra|num if item }}"></div>
+  </div>
+  <div id="preview" class="alert alert-light border mt-3 mb-2 py-2">Fill in the numbers to see the result.</div>
+  <button class="btn btn-success w-100">{{ label }}</button>
+</form>
+<script>
+// Live result: profit = sold x selling price - (bought x buying price + extra costs)
+const f = document.getElementById("itemForm"), p = document.getElementById("preview");
+function show() {
+  const v = n => parseFloat(f[n].value) || 0, m = x => "MK" + Math.abs(x).toLocaleString();
+  if (!f.bought.value || !f.sold.value || !f.buy.value || !f.sell.value) return;
+  const rev = v("sold") * v("sell"), cost = v("bought") * v("buy") + v("extra"), profit = rev - cost, unsold = v("bought") - v("sold");
+  const bad = unsold < 0;
+  p.className = "alert mt-3 mb-2 py-2 alert-" + (bad ? "warning" : profit > 0 ? "success" : profit < 0 ? "danger" : "secondary");
+  p.innerHTML = bad ? "Quantity sold cannot be more than quantity bought." :
+    "<b>" + (profit > 0 ? "Profit" : profit < 0 ? "Loss" : "Break-even") + ": " + m(profit) + "</b><br><small>Sales " + m(rev) +
+    " − Cost " + m(cost) + (unsold > 0 ? "<br>Unsold: " + unsold + " units (worth " + m(unsold * v("sell")) + "). If all sell: " +
+    (profit + unsold * v("sell") < 0 ? "-" : "") + m(profit + unsold * v("sell")) : "") + "</small>";
+}
+f.querySelectorAll(".calc").forEach(i => i.addEventListener("input", show)); show();
+</script>
