@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block content %}
+<h4>Edit record</h4>
+<div class="card card-body" style="max-width:520px">
+  {% with action=url_for('edit_record', rid=rec.id), label='Save changes' %}{% include "_record_form.html" %}{% endwith %}
+  <a class="btn btn-link mt-2" href="{{ url_for('index') }}">Cancel</a>
+</div>
+{% endblock %}

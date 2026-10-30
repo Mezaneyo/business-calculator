@@ -26,6 +26,15 @@
   {% block content %}{% endblock %}
 </main>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// Two-tap delete (browser pop-ups like confirm() do not work inside the Android app): tap once -> "Sure?", tap again -> delete.
+document.addEventListener("click", e => {
+  const b = e.target.closest(".js-del"); if (!b || b.dataset.armed) return;
+  e.preventDefault(); b.dataset.armed = "1"; const t = b.textContent;
+  b.textContent = "Sure?"; b.classList.replace("btn-outline-danger", "btn-danger");
+  setTimeout(() => { delete b.dataset.armed; b.textContent = t; b.classList.replace("btn-danger", "btn-outline-danger"); }, 3000);
+});
+</script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

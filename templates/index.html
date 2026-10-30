@@ -2,57 +2,68 @@
 {% block content %}
 <div class="card text-center mb-3 border-{{ 'success' if s.net > 0 else 'danger' if s.net < 0 else 'secondary' }}">
   <div class="card-body">
-    <div class="text-muted">Overall {{ 'profit' if s.net >= 0 else 'loss' }} so far</div>
+    <div class="text-muted">Overall {{ 'profit' if s.net >= 0 else 'loss' }}</div>
     <h1 class="text-{{ 'success' if s.net > 0 else 'danger' if s.net < 0 else 'secondary' }}">{{ s.net|mk }}</h1>
-    <div class="text-muted">Net margin {{ s.margin|pct }} · {{ s.profits }} item(s) in profit · {{ s.losses }} in loss</div>
-    {% if s.stock_value %}<div class="mt-2 small">📦 Unsold stock worth <b>{{ s.stock_value|mk }}</b>. If it all sells, overall result becomes <b>{{ s.potential|mk }}</b>.</div>{% endif %}
+    <div class="text-muted">Margin {{ s.margin|pct }} · {{ s.profits }} item(s) in profit · {{ s.losses }} in loss</div>
+    {% if s.stock_value %}<div class="mt-2 small">📦 Unsold stock worth <b>{{ s.stock_value|mk }}</b>. If it all sells, the result becomes <b>{{ s.potential|mk }}</b>.</div>{% endif %}
   </div>
 </div>
 <div class="row g-2 text-center mb-3">
-  <div class="col-6 col-md-3"><div class="card card-body py-2"><small>Sales (revenue)</small><b>{{ s.revenue|mk }}</b></div></div>
+  <div class="col-6 col-md-3"><div class="card card-body py-2"><small>Sales</small><b>{{ s.revenue|mk }}</b></div></div>
   <div class="col-6 col-md-3"><div class="card card-body py-2"><small>Cost of stock bought</small><b>{{ s.cost|mk }}</b></div></div>
   <div class="col-6 col-md-3"><div class="card card-body py-2"><small>Gross profit</small><b>{{ s.gross|mk }}</b></div></div>
   <div class="col-6 col-md-3"><div class="card card-body py-2"><small>Business expenses</small><b>{{ s.expenses|mk }}</b></div></div>
 </div>
-{% if s.best %}<div class="alert alert-info py-2">🏆 Best: <b>{{ s.best.name }}</b> ({{ s.best.profit|mk }})
-  · ⚠️ Weakest: <b>{{ s.worst.name }}</b> ({{ s.worst.profit|mk }})</div>{% endif %}
+{% if s.best %}<div class="alert alert-info py-2">🏆 Best: <b>{{ s.best.name }}</b> ({{ s.best.profit|mk }}) · ⚠️ Weakest: <b>{{ s.worst.name }}</b> ({{ s.worst.profit|mk }})</div>{% endif %}
 
-<div class="card mb-3"><div class="card-header fw-bold">➕ Add item</div><div class="card-body">
-  {% with item=None, action=url_for('add_item'), label='Add item' %}{% include "_item_form.html" %}{% endwith %}
+<div class="card mb-3"><div class="card-header fw-bold">1️⃣ Add item</div><div class="card-body">
+  {% with item=None, action=url_for('add_product'), label='Add item' %}{% include "_product_form.html" %}{% endwith %}
+  <table class="table align-middle mt-3 mb-0 small">
+    <thead><tr><th>Your items</th><th>Buy</th><th>Sell</th><th></th></tr></thead>
+    {% for i in items %}<tr><td><b>{{ i.name }}</b></td><td>{{ i.buy|mk }}</td><td>{{ i.sell|mk }}</td>
+      <td class="text-nowrap"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('edit_product', pid=i.id) }}">Edit</a>
+        <form class="d-inline" method="post" action="{{ url_for('delete_product', pid=i.id) }}"><button class="btn btn-sm btn-outline-danger js-del">✕</button></form></td></tr>
+    {% else %}<tr><td colspan="4" class="text-muted">No items yet.</td></tr>{% endfor %}
+  </table>
 </div></div>
 
-<div class="card mb-3"><div class="card-header fw-bold">📋 Profit / loss per item</div>
+<div class="card mb-3"><div class="card-header fw-bold">2️⃣ Select item &amp; record bought / sold</div><div class="card-body">
+  {% with rec=None, action=url_for('add_record'), label='Add record' %}{% include "_record_form.html" %}{% endwith %}
+</div></div>
+
+<div class="card mb-3" id="results"><div class="card-header fw-bold">3️⃣ Profit / loss per item</div>
 <div class="table-responsive"><table class="table align-middle mb-0 small">
-  <thead><tr><th>Item</th><th>Sales</th><th>Cost</th><th>Profit / loss</th><th></th></tr></thead>
-  {% for i in items %}<tr>
-    <td><b>{{ i.name }}</b><br><span class="text-muted">Bought {{ i.bought|num }} × {{ i.buy|mk }}{% if i.extra %} + {{ i.extra|mk }} extra{% endif %}<br>
-      Sold {{ i.sold|num }} × {{ i.sell|mk }}</span>
-      {% if i.unsold > 0 %}<br><span class="text-warning">Unsold: {{ i.unsold|num }} ({{ i.stock_value|mk }})</span>{% endif %}</td>
+  <thead><tr><th>Item</th><th>Sales</th><th>Cost</th><th>Result</th></tr></thead>
+  {% for i in items if i.has_records %}<tr>
+    <td><b>{{ i.name }}</b><br><span class="text-muted">Bought {{ i.bought|num }} · Sold {{ i.sold|num }}</span>
+      {% if i.unsold > 0 %}<br><span class="text-warning">Unsold {{ i.unsold|num }} ({{ i.stock_value|mk }})</span>{% endif %}</td>
     <td>{{ i.revenue|mk }}</td><td>{{ i.cost|mk }}</td>
     <td><span class="badge text-bg-{{ i.color }}">{{ i.status }}</span><br><b class="text-{{ i.color }}">{{ i.profit|mk }}</b>
-      <br><span class="text-muted">{{ i.margin|pct }} margin</span>
-      {% if i.unsold > 0 %}<br><span class="text-muted">If all sold: {{ i.potential|mk }}</span>{% endif %}</td>
-    <td class="text-nowrap"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('edit_item', iid=i.id) }}">Edit</a>
-      <form class="d-inline" method="post" action="{{ url_for('delete_item', iid=i.id) }}" onsubmit="return confirm('Delete this item?')">
-        <button class="btn btn-sm btn-outline-danger">✕</button></form></td>
-  </tr>{% else %}<tr><td colspan="5" class="text-center text-muted py-4">No items yet. Add one above or load sample data.</td></tr>{% endfor %}
+      <br><span class="text-muted">{{ i.margin|pct }}</span>{% if i.unsold > 0 %}<br><span class="text-muted">If all sold: {{ i.potential|mk }}</span>{% endif %}</td>
+  </tr>{% else %}<tr><td colspan="4" class="text-center text-muted py-3">No records yet. Use step 2.</td></tr>{% endfor %}
 </table></div></div>
 
-<div class="card mb-3"><div class="card-header fw-bold">🏢 Business expenses (rent, wages, market fees...)</div><div class="card-body">
+<div class="card mb-3"><div class="card-header fw-bold">4️⃣ Records</div>
+<div class="card-body">
+  {% for r in records %}<div class="d-flex justify-content-between align-items-center border-bottom py-2 small">
+    <div><b>{{ r.name }}</b> · <span class="text-{{ r.color }}">{{ r.profit|mk }}</span><br>
+      <span class="text-muted">Bought {{ r.bought|num }} · Sold {{ r.sold|num }}{% if r.extra %} · Extra {{ r.extra|mk }}{% endif %} · {{ r.created }}</span></div>
+    <div class="text-nowrap"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('edit_record', rid=r.id) }}">Edit</a>
+      <form class="d-inline" method="post" action="{{ url_for('delete_record', rid=r.id) }}"><button class="btn btn-sm btn-outline-danger js-del">✕</button></form></div>
+  </div>{% else %}<p class="text-muted mb-0">No records yet.</p>{% endfor %}
+</div></div>
+
+<div class="card mb-3"><div class="card-header fw-bold">5️⃣ Business expenses (rent, wages, market fees...)</div><div class="card-body">
   <form method="post" action="{{ url_for('add_expense') }}" class="row g-2 mb-3">
     <div class="col-7"><input class="form-control" name="name" placeholder="Expense name" required></div>
     <div class="col-5"><input class="form-control" name="amount" type="number" step="any" min="0" placeholder="MK" required></div>
     <div class="col-12"><button class="btn btn-success w-100">Add expense</button></div>
   </form>
-  {% for e in expenses %}<div class="d-flex justify-content-between border-top py-2">
+  {% for e in expenses %}<div class="d-flex justify-content-between align-items-center border-top py-2">
     <span>{{ e.name }}</span>
-    <span>{{ e.amount|mk }}
-      <form class="d-inline" method="post" action="{{ url_for('delete_expense', eid=e.id) }}"><button class="btn btn-sm btn-outline-danger ms-2">✕</button></form></span>
+    <span>{{ e.amount|mk }} <form class="d-inline" method="post" action="{{ url_for('delete_expense', eid=e.id) }}"><button class="btn btn-sm btn-outline-danger ms-2 js-del">✕</button></form></span>
   </div>{% else %}<p class="text-muted mb-0">No expenses added.</p>{% endfor %}
 </div></div>
 
-<div class="d-flex gap-2 mb-4">
-  <form method="post" action="{{ url_for('sample') }}"><button class="btn btn-outline-secondary btn-sm">Load sample data</button></form>
-  <form method="post" action="{{ url_for('reset') }}" onsubmit="return confirm('Delete ALL items and expenses?')"><button class="btn btn-outline-danger btn-sm">Clear all</button></form>
-</div>
+<form class="mb-4" method="post" action="{{ url_for('reset') }}"><button class="btn btn-outline-danger btn-sm js-del">Clear all data</button></form>
 {% endblock %}

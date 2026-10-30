@@ -2,7 +2,7 @@
 {% block content %}
 <h4>Edit item</h4>
 <div class="card card-body" style="max-width:520px">
-  {% with action=url_for('edit_item', iid=item.id), label='Save changes' %}{% include "_item_form.html" %}{% endwith %}
+  {% with action=url_for('edit_product', pid=item.id), label='Save changes' %}{% include "_product_form.html" %}{% endwith %}
   <a class="btn btn-link mt-2" href="{{ url_for('index') }}">Cancel</a>
 </div>
 {% endblock %}

@@ -5,7 +5,7 @@ Setup: pip install flask      Run: python app.py      Open: http://127.0.0.1:500
 Exports (Excel, PDF, Word, CSV) use only the Python standard library - nothing else to install.
 """
 import csv, io, logging, os, sqlite3, sys, zipfile
-from datetime import date
+from datetime import date, datetime
 from xml.sax.saxutils import escape as esc
 from flask import Flask, Response, abort, flash, g, redirect, render_template, request, url_for
 from werkzeug.exceptions import HTTPException
@@ -57,15 +57,13 @@ def close_db(_):
 
 
 def init_db():
-    """items.qty = quantity SOLD, items.bought = quantity BOUGHT."""
+    """products = the items you sell (name + buying/selling price); records = what you bought and sold of them."""
     con = sqlite3.connect(DB)
     con.executescript("""
-    CREATE TABLE IF NOT EXISTS items(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT,
-        qty REAL, buy REAL, sell REAL, extra REAL, bought REAL);
+    CREATE TABLE IF NOT EXISTS products(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, buy REAL, sell REAL);
+    CREATE TABLE IF NOT EXISTS records(id INTEGER PRIMARY KEY AUTOINCREMENT, product_id INTEGER,
+        bought REAL, sold REAL, extra REAL, created TEXT);
     CREATE TABLE IF NOT EXISTS expenses(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, amount REAL);""")
-    if "bought" not in [r[1] for r in con.execute("PRAGMA table_info(items)")]:  # upgrade an older database
-        con.execute("ALTER TABLE items ADD COLUMN bought REAL")
-        con.execute("UPDATE items SET bought = qty")
     con.commit()
     con.close()
 
@@ -88,90 +86,138 @@ def num(n):
 
 
 # ---------- calculations ----------
-def calc(i):
-    """Profit/loss for one item.
-    revenue = quantity sold x selling price
-    cost    = quantity BOUGHT x buying price + extra costs   (you pay for everything you buy)
-    profit  = revenue - cost          unsold = bought - sold"""
-    bought, sold = i["bought"], i["qty"]
-    revenue = sold * i["sell"]
-    cost = bought * i["buy"] + i["extra"]
+def result(bought, sold, extra, buy, sell):
+    """revenue = sold x selling price; cost = BOUGHT x buying price + extra costs; profit = revenue - cost."""
+    revenue = sold * sell
+    cost = bought * buy + extra
     profit = revenue - cost
-    unsold = bought - sold
     status, color = ("Profit", "success") if profit > 0 else ("Loss", "danger") if profit < 0 else ("Break-even", "secondary")
-    return dict(i, sold=sold, unsold=unsold, revenue=revenue, cost=cost, profit=profit, status=status, color=color,
-                stock_value=unsold * i["sell"], potential=profit + unsold * i["sell"],  # result if all unsold stock sells
-                margin=profit / revenue * 100 if revenue else 0,
-                markup=profit / cost * 100 if cost else 0)
+    unsold = bought - sold
+    return dict(bought=bought, sold=sold, unsold=unsold, extra=extra, revenue=revenue, cost=cost, profit=profit,
+                status=status, color=color, stock_value=unsold * sell, potential=profit + unsold * sell,
+                margin=profit / revenue * 100 if revenue else 0)
 
 
 def summary():
-    items = [calc(i) for i in q("SELECT * FROM items ORDER BY id")]
+    products = q("SELECT * FROM products ORDER BY id")
+    recs = q("SELECT r.*, p.name, p.buy, p.sell FROM records r JOIN products p ON p.id = r.product_id ORDER BY r.id DESC")
+    records = [dict(r, **result(r["bought"], r["sold"], r["extra"], r["buy"], r["sell"])) for r in recs]
+    items = []
+    for p in products:
+        mine = [r for r in recs if r["product_id"] == p["id"]]
+        res = result(sum(r["bought"] for r in mine), sum(r["sold"] for r in mine), sum(r["extra"] for r in mine), p["buy"], p["sell"])
+        items.append(dict(p, has_records=bool(mine), unit_profit=p["sell"] - p["buy"], **res))
     expenses = q("SELECT * FROM expenses ORDER BY id")
-    revenue = sum(i["revenue"] for i in items)
-    cost = sum(i["cost"] for i in items)
+    revenue, cost = sum(i["revenue"] for i in items), sum(i["cost"] for i in items)
     exp_total = sum(e["amount"] for e in expenses)
-    net = revenue - cost - exp_total
-    stock_value = sum(i["stock_value"] for i in items)
-    return items, expenses, dict(
+    net, stock_value = revenue - cost - exp_total, sum(i["stock_value"] for i in items)
+    active = [i for i in items if i["has_records"]]
+    return items, records, expenses, products, dict(
         revenue=revenue, cost=cost, gross=revenue - cost, expenses=exp_total, net=net,
-        stock_value=stock_value, potential=net + stock_value,
-        margin=net / revenue * 100 if revenue else 0,
-        profits=sum(i["profit"] > 0 for i in items), losses=sum(i["profit"] < 0 for i in items),
-        best=max(items, key=lambda i: i["profit"]) if items else None,
-        worst=min(items, key=lambda i: i["profit"]) if items else None)
+        stock_value=stock_value, potential=net + stock_value, margin=net / revenue * 100 if revenue else 0,
+        profits=sum(i["profit"] > 0 for i in active), losses=sum(i["profit"] < 0 for i in active),
+        best=max(active, key=lambda i: i["profit"]) if active else None,
+        worst=min(active, key=lambda i: i["profit"]) if active else None)
 
 
-def parse_item(f):
-    """Returns (name, sold, buy, sell, extra, bought) or None."""
+def fnum(f, key, default=None):
+    v = (f.get(key) or "").strip()
+    return float(v) if v else default  # raises ValueError for text
+
+
+def parse_product(f):
     try:
-        name = f["name"].strip()
-        bought, sold = float(f["bought"]), float(f["sold"])
-        buy, sell, extra = float(f["buy"]), float(f["sell"]), float(f.get("extra") or 0)
+        name, buy, sell = f["name"].strip(), fnum(f, "buy"), fnum(f, "sell")
     except (KeyError, ValueError):
         return None
-    ok = name and bought > 0 and 0 <= sold <= bought and min(buy, sell, extra) >= 0
-    return (name, sold, buy, sell, extra, bought) if ok else None
+    return (name, buy, sell) if name and buy is not None and sell is not None and min(buy, sell) >= 0 else None
+
+
+def parse_record(f):
+    """Quantity sold left blank = everything bought was sold."""
+    try:
+        pid, bought = int(f["product_id"]), fnum(f, "bought")
+        sold, extra = fnum(f, "sold", bought), fnum(f, "extra", 0.0)
+    except (KeyError, ValueError):
+        return None
+    ok = bought and bought > 0 and 0 <= sold <= bought and extra >= 0 and q("SELECT 1 FROM products WHERE id=?", (pid,), one=True)
+    return (pid, bought, sold, extra) if ok else None
 
 
 # ---------- routes ----------
 @app.route("/")
 def index():
-    items, expenses, s = summary()
-    return render_template("index.html", name=NAME, items=items, expenses=expenses, s=s)
+    items, records, expenses, products, s = summary()
+    return render_template("index.html", name=NAME, items=items, records=records, expenses=expenses,
+                           products=products, s=s)
 
 
-@app.post("/item/add")
-def add_item():
-    row = parse_item(request.form)
+@app.post("/product/add")
+def add_product():
+    row = parse_product(request.form)
     if row:
-        q("INSERT INTO items(name,qty,buy,sell,extra,bought) VALUES(?,?,?,?,?,?)", row)
-        flash("Item added.", "success")
+        q("INSERT INTO products(name,buy,sell) VALUES(?,?,?)", row)
+        flash("Item added. Now record what you bought and sold in step 2.", "success")
     else:
-        flash("Check the numbers: quantity bought above 0, quantity sold not more than bought, prices 0 or more.", "danger")
+        flash("Enter the item name and both prices (0 or more).", "danger")
     return redirect(url_for("index"))
 
 
-@app.route("/item/<int:iid>/edit", methods=["GET", "POST"])
-def edit_item(iid):
-    item = q("SELECT * FROM items WHERE id=?", (iid,), one=True)
+@app.route("/product/<int:pid>/edit", methods=["GET", "POST"])
+def edit_product(pid):
+    item = q("SELECT * FROM products WHERE id=?", (pid,), one=True)
     if not item:
         abort(404)
     if request.method == "POST":
-        row = parse_item(request.form)
+        row = parse_product(request.form)
         if row:
-            q("UPDATE items SET name=?, qty=?, buy=?, sell=?, extra=?, bought=? WHERE id=?", row + (iid,))
+            q("UPDATE products SET name=?, buy=?, sell=? WHERE id=?", row + (pid,))
             flash("Item updated.", "success")
             return redirect(url_for("index"))
-        flash("Invalid values. Quantity sold cannot be more than quantity bought.", "danger")
-    return render_template("edit.html", name=NAME, item=item)
+        flash("Invalid values.", "danger")
+    return render_template("edit_product.html", name=NAME, item=item)
 
 
-@app.post("/item/<int:iid>/delete")
-def delete_item(iid):
-    q("DELETE FROM items WHERE id=?", (iid,))
-    flash("Item deleted.", "success")
+@app.post("/product/<int:pid>/delete")
+def delete_product(pid):
+    q("DELETE FROM records WHERE product_id=?", (pid,))
+    q("DELETE FROM products WHERE id=?", (pid,))
+    flash("Item and its records deleted.", "success")
     return redirect(url_for("index"))
+
+
+@app.post("/record/add")
+def add_record():
+    row = parse_record(request.form)
+    if row:
+        q("INSERT INTO records(product_id,bought,sold,extra,created) VALUES(?,?,?,?,?)",
+          row + (datetime.now().strftime("%Y-%m-%d %H:%M"),))
+        flash("Record added.", "success")
+    else:
+        flash("Choose an item, enter quantity bought above 0, and quantity sold not more than bought.", "danger")
+    return redirect(url_for("index") + "#results")
+
+
+@app.route("/record/<int:rid>/edit", methods=["GET", "POST"])
+def edit_record(rid):
+    rec = q("SELECT * FROM records WHERE id=?", (rid,), one=True)
+    if not rec:
+        abort(404)
+    if request.method == "POST":
+        row = parse_record(request.form)
+        if row:
+            q("UPDATE records SET product_id=?, bought=?, sold=?, extra=? WHERE id=?", row + (rid,))
+            flash("Record updated.", "success")
+            return redirect(url_for("index") + "#results")
+        flash("Invalid values. Quantity sold cannot be more than quantity bought.", "danger")
+    return render_template("edit_record.html", name=NAME, rec=rec, products=q("SELECT * FROM products ORDER BY id"))
+
+
+@app.post("/record/<int:rid>/delete")
+def delete_record(rid):
+    q("DELETE FROM records WHERE id=?", (rid,))
+    flash("Record deleted.", "success")
+    return redirect(url_for("index") + "#results")
 
 
 @app.post("/expense/add")
@@ -192,22 +238,10 @@ def delete_expense(eid):
     return redirect(url_for("index"))
 
 
-@app.post("/sample")
-def sample():
-    for n, bought, sold, buy, sell, extra in [("Rice 25kg bag", 12, 11, 52000, 60000, 5000),
-            ("Cooking oil 5L", 25, 20, 14500, 17000, 3000), ("Sugar 2kg", 30, 30, 4200, 4000, 0),
-            ("Phone charger", 15, 15, 2500, 5000, 0)]:
-        q("INSERT INTO items(name,qty,buy,sell,extra,bought) VALUES(?,?,?,?,?,?)", (n, sold, buy, sell, extra, bought))
-    for r in [("Transport", 25000), ("Market fee", 15000)]:
-        q("INSERT INTO expenses(name,amount) VALUES(?,?)", r)
-    flash("Sample data loaded.", "success")
-    return redirect(url_for("index"))
-
-
 @app.post("/reset")
 def reset():
-    q("DELETE FROM items")
-    q("DELETE FROM expenses")
+    for t in ("records", "products", "expenses"):
+        q(f"DELETE FROM {t}")
     flash("All data cleared.", "warning")
     return redirect(url_for("index"))
 
@@ -217,9 +251,9 @@ HEAD = ["Item", "Bought", "Sold", "Unsold", "Buy price", "Sell price", "Extra co
 
 
 def report():
-    items, expenses, s = summary()
+    items, records, expenses, products, s = summary()
     rows = [[i["name"], i["bought"], i["sold"], i["unsold"], i["buy"], i["sell"], i["extra"],
-             i["revenue"], i["cost"], i["profit"]] for i in items]
+             i["revenue"], i["cost"], i["profit"]] for i in items if i["has_records"]]
     totals = [("Total revenue (sales)", s["revenue"]), ("Total cost of all stock bought", s["cost"]),
               ("Gross profit / loss", s["gross"])]
     totals += [("Expense: " + e["name"], e["amount"]) for e in expenses]
