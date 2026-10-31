@@ -11,6 +11,9 @@ from flask import Flask, Response, abort, flash, g, redirect, render_template, r
 from werkzeug.exceptions import HTTPException
 
 NAME = "Business Calculator"
+VERSION = "1.0"
+WHATSAPP = "265995514049"  # Mezaneyo Online Shop (MOS) contact
+DEFAULTS = {"business": "Mezaneyo Online Shop (MOS)", "currency": "MK", "mos_url": ""}
 HERE = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))  # _MEIPASS = inside the .exe
 
 
@@ -26,7 +29,7 @@ def data_dir():
 DB = os.path.join(data_dir(), "calculator.db")
 logging.basicConfig(filename=os.path.join(data_dir(), "calculator.log"), level=logging.INFO,
                     format="%(asctime)s %(levelname)s %(message)s")
-app = Flask(__name__, template_folder=os.path.join(HERE, "templates"))
+app = Flask(__name__, template_folder=os.path.join(HERE, "templates"), static_folder=os.path.join(HERE, "static"))
 app.secret_key = os.environ.get("SECRET_KEY", "change-me")
 
 
@@ -63,16 +66,29 @@ def init_db():
     CREATE TABLE IF NOT EXISTS products(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, buy REAL, sell REAL);
     CREATE TABLE IF NOT EXISTS records(id INTEGER PRIMARY KEY AUTOINCREMENT, product_id INTEGER,
         bought REAL, sold REAL, extra REAL, created TEXT);
-    CREATE TABLE IF NOT EXISTS expenses(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, amount REAL);""")
+    CREATE TABLE IF NOT EXISTS expenses(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, amount REAL);
+    CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY, value TEXT);""")
     con.commit()
     con.close()
+
+
+def cfg():
+    """Settings saved on the Settings page (business name, currency, MOS link), with defaults."""
+    if "cfg" not in g:
+        g.cfg = dict(DEFAULTS, **{r["key"]: r["value"] for r in q("SELECT * FROM settings")})
+    return g.cfg
+
+
+@app.context_processor
+def inject():
+    return dict(cfg=cfg(), name=NAME, version=VERSION)
 
 
 @app.template_filter("mk")
 def mk(n):
     s = f"{abs(n):,.2f}"
     s = s[:-3] if s.endswith(".00") else s
-    return ("-" if n < 0 else "") + "MK" + s
+    return ("-" if n < 0 else "") + cfg()["currency"] + s
 
 
 @app.template_filter("pct")
@@ -246,6 +262,39 @@ def reset():
     return redirect(url_for("index"))
 
 
+# ---------- settings and information pages ----------
+@app.route("/settings", methods=["GET", "POST"])
+def settings():
+    if request.method == "POST":
+        f = request.form
+        vals = {"business": f.get("business", "").strip()[:60] or DEFAULTS["business"],
+                "currency": f.get("currency", "").strip()[:5] or DEFAULTS["currency"],
+                "mos_url": f.get("mos_url", "").strip()[:200]}
+        if vals["mos_url"] and not vals["mos_url"].startswith(("http://", "https://")):
+            flash("The shop link must start with http:// or https://", "danger")
+        else:
+            for k, v in vals.items():
+                q("INSERT OR REPLACE INTO settings(key,value) VALUES(?,?)", (k, v))
+            flash("Settings saved.", "success")
+        return redirect(url_for("settings"))
+    return render_template("settings.html")
+
+
+@app.route("/about")
+def about():
+    return render_template("about.html", whatsapp=WHATSAPP)
+
+
+@app.route("/privacy")
+def privacy():
+    return render_template("privacy.html")
+
+
+@app.route("/terms")
+def terms():
+    return render_template("terms.html")
+
+
 # ---------- export: Excel, PDF, Word, CSV (standard library only) ----------
 HEAD = ["Item", "Bought", "Sold", "Unsold", "Buy price", "Sell price", "Extra costs", "Revenue", "Total cost", "Profit/Loss"]
 
@@ -260,7 +309,7 @@ def report():
     totals += [("Total business expenses", s["expenses"]), ("NET PROFIT / LOSS", s["net"]),
                ("Unsold stock value (at selling price)", s["stock_value"]),
                ("Potential net profit if all stock is sold", s["potential"])]
-    sub = "Generated " + date.today().strftime("%d %B %Y") + " | Amounts in MK"
+    sub = f"{cfg()['business']} | Generated " + date.today().strftime("%d %B %Y") + f" | Amounts in {cfg()['currency']}"
     return "Business Calculator - Profit and Loss Report", sub, rows, totals
 
 
@@ -311,7 +360,7 @@ def make_docx(title, sub, rows, totals):
     table = (f'<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/><w:tblBorders>{borders}</w:tblBorders></w:tblPr>'
              + tr(HEAD, True) + "".join(tr([cell_text(j, v) for j, v in enumerate(r)]) for r in rows) + "</w:tbl>")
     body = (p(title, True, 32) + p(sub) + table + p("") + p("Summary", True, 26)
-            + "".join(p(f"{l}: MK{v:,.2f}", l.startswith("NET")) for l, v in totals)
+            + "".join(p(f"{l}: {cfg()['currency']}{v:,.2f}", l.startswith("NET")) for l, v in totals)
             + '<w:sectPr><w:pgSz w:w="16838" w:h="11906" w:orient="landscape"/><w:pgMar w:top="720" w:right="720" w:bottom="720" w:left="720" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr>')
     head = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
     return zip_bytes({

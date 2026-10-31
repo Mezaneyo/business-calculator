@@ -17,7 +17,7 @@
     if (!f.buy.value || !f.sell.value) return;
     const d = parseFloat(f.sell.value) - parseFloat(f.buy.value), m = parseFloat(f.buy.value) ? (d / parseFloat(f.buy.value) * 100).toFixed(1) : "0";
     p.className = "alert mt-3 mb-2 py-2 alert-" + (d > 0 ? "success" : d < 0 ? "danger" : "secondary");
-    p.innerHTML = "<b>" + (d > 0 ? "Profit" : d < 0 ? "Loss" : "Break-even") + " per unit: MK" + Math.abs(d).toLocaleString() + "</b> (" + m + "% markup)";
+    p.innerHTML = "<b>" + (d > 0 ? "Profit" : d < 0 ? "Loss" : "Break-even") + " per unit: " + CUR + Math.abs(d).toLocaleString() + "</b> (" + m + "% markup)";
   }
   f.querySelectorAll(".pcalc").forEach(i => i.addEventListener("input", show)); show();
 })();

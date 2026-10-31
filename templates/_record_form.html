@@ -18,7 +18,7 @@
 </form>
 <script>
 (function () {
-  const f = document.getElementById("recForm"), p = document.getElementById("rprev"), m = x => "MK" + Math.abs(x).toLocaleString();
+  const f = document.getElementById("recForm"), p = document.getElementById("rprev"), m = x => CUR + Math.abs(x).toLocaleString();
   function show() {
     const o = f.product_id.selectedOptions[0];
     if (!o || !o.value || !f.bought.value) return;

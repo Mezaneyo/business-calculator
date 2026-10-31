@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<h3>⚙️ Settings</h3>
+<div class="card mb-3"><div class="card-header fw-bold">Business details</div><div class="card-body">
+  <form method="post">
+    <label class="form-label mb-0">Business name (shown on the app and on reports)</label>
+    <input class="form-control mb-2" name="business" value="{{ cfg.business }}" maxlength="60" required>
+    <label class="form-label mb-0">Currency symbol</label>
+    <input class="form-control mb-2" name="currency" value="{{ cfg.currency }}" maxlength="5" required>
+    <label class="form-label mb-0">Mezaneyo Online Shop (MOS) website link (optional)</label>
+    <input class="form-control mb-1" name="mos_url" type="url" placeholder="https://..." value="{{ cfg.mos_url }}">
+    <div class="form-text mb-3">When set, a "Visit MOS" button appears in the menu and on the About page.</div>
+    <button class="btn btn-success w-100">Save settings</button>
+  </form>
+</div></div>
+<div class="card mb-3"><div class="card-header fw-bold">⬇ Export your report</div><div class="card-body">
+  <p class="small text-muted">Download the profit and loss report with all items, totals and expenses.</p>
+  <div class="d-grid gap-2">
+    <a class="btn btn-outline-success" href="{{ url_for('export', fmt='xlsx') }}">📗 Excel (.xlsx)</a>
+    <a class="btn btn-outline-success" href="{{ url_for('export', fmt='pdf') }}">📕 PDF (.pdf)</a>
+    <a class="btn btn-outline-success" href="{{ url_for('export', fmt='docx') }}">📘 Word (.docx)</a>
+    <a class="btn btn-outline-success" href="{{ url_for('export', fmt='csv') }}">📄 CSV</a>
+  </div>
+</div></div>
+<div class="card mb-3 border-danger"><div class="card-header fw-bold text-danger">Your data</div><div class="card-body">
+  <p class="small text-muted">Everything is stored on this device only. Clearing deletes all items, records and expenses (your settings stay).</p>
+  <form method="post" action="{{ url_for('reset') }}"><button class="btn btn-outline-danger js-del">Clear all data</button></form>
+</div></div>
+<div class="card mb-4"><div class="card-body">
+  <a href="{{ url_for('about') }}">About</a> · <a href="{{ url_for('privacy') }}">Privacy Policy</a> · <a href="{{ url_for('terms') }}">Terms of Use</a>
+</div></div>
+{% endblock %}

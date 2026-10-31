@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Privacy Policy - {{ name }}{% endblock %}
+{% block content %}
+<h3>🔒 Privacy Policy</h3>
+<p class="text-muted">{{ name }} by {{ cfg.business }} · Last updated: 30 October 2026</p>
+<div class="card card-body mb-4">
+  <h5>In short</h5><p>Your business figures stay on your own device. The app has no accounts, no advertising and no tracking.</p>
+  <h5>What the app stores</h5>
+  <p>The items, prices, quantities, expenses and settings you enter. They are saved in a database file on your phone or computer, so you can use them again later.</p>
+  <h5>What we do not do</h5>
+  <ul><li>We do not collect your name, phone number, location or contacts</li><li>We do not send your business data to any server</li>
+    <li>We do not sell or share your data, and we do not use analytics or advertising</li></ul>
+  <h5>Internet and third-party content</h5>
+  <p>The app's page design (Bootstrap) is loaded from a public content delivery network when you are online, so that network can see your internet address like any website. Your business data is never sent with that request.</p>
+  <h5>Exports</h5>
+  <p>When you export a report, the file is created on your device. You decide where to save it and who to share it with.</p>
+  <h5>Deleting your data</h5>
+  <p>Use <a href="{{ url_for('settings') }}">Settings → Clear all data</a>, or uninstall the app, to remove everything.</p>
+  <h5>Changes to this policy</h5>
+  <p>If this policy changes, the date above will be updated.</p>
+  <h5>Contact</h5>
+  <p class="mb-0">Questions about privacy? Contact Mezaneyo Online Shop (MOS) on WhatsApp: +265 995 514 049.</p>
+</div>
+{% endblock %}

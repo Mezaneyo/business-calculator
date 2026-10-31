@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}About - {{ name }}{% endblock %}
+{% block content %}
+<h3>ℹ️ About {{ name }}</h3>
+<p class="text-muted">Version {{ version }}</p>
+<div class="card card-body mb-3"><h5>What it does</h5>
+  <p class="mb-2">{{ name }} helps small traders see whether they are making a profit or a loss, for each item and for the whole business.</p>
+  <ul class="mb-0"><li>Add your items with their buying and selling prices</li><li>Record how much you bought and how much you sold</li>
+    <li>See profit or loss per item, unsold stock, and the overall result</li><li>Add business expenses such as rent, transport and wages</li>
+    <li>Export a report to Excel, PDF, Word or CSV</li></ul></div>
+<div class="card card-body mb-3"><h5>How the calculation works</h5>
+  <ul class="mb-0"><li><b>Sales</b> = quantity sold × selling price</li><li><b>Cost</b> = quantity bought × buying price + extra costs</li>
+    <li><b>Profit or loss</b> = sales − cost</li><li><b>Unsold stock</b> = quantity bought − quantity sold</li>
+    <li><b>Overall result</b> = profit or loss of all items − business expenses</li></ul></div>
+<div class="card card-body mb-3"><h5>Part of Mezaneyo Online Shop (MOS)</h5>
+  <p class="mb-2">{{ name }} is the profit-and-loss tool of <b>Mezaneyo Online Shop (MOS)</b>, an e-business that sells products online and accepts mobile money payments. Shop owners use it to check how each product and the whole business is performing.</p>
+  {% if cfg.mos_url %}<a class="btn btn-success" href="{{ cfg.mos_url }}" target="_blank" rel="noopener">🛍️ Visit Mezaneyo Online Shop (MOS)</a>
+  {% else %}<p class="text-muted small mb-0">Add the shop website link in <a href="{{ url_for('settings') }}">Settings</a> to show a "Visit MOS" button here.</p>{% endif %}</div>
+<div class="card card-body mb-4"><h5>Developer</h5>
+  <p class="mb-2">Developed by <b>Gift Meza</b> (Mezaneyo) as an individual project for <b>COM 412: E-Business Applications</b>. Built with Python, Flask, SQLite and Bootstrap.</p>
+  <a class="btn btn-outline-success" href="https://wa.me/{{ whatsapp }}" target="_blank" rel="noopener">💬 Contact on WhatsApp: +265 995 514 049</a></div>
+{% endblock %}

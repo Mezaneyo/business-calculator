@@ -6,6 +6,7 @@ Calculates profit / loss per item and overall. Python 3 + Flask + SQLite + Boots
 |---|---|
 | `app.py` | Everything important: database (`q`, `init_db`), maths (`calc`, `summary`), input checks (`parse_item`), pages (routes), exports (`make_xlsx/pdf/docx/csv`) |
 | `templates/` | Pages. `base.html` = layout, `index.html` = main page, `_product_form.html` / `_record_form.html` = the two forms with live preview |
+| `templates/settings.html`, `about.html`, `privacy.html`, `terms.html` | Settings (business name, currency, shop link, export, clear data) and information pages |
 | `desktop.py` | Launcher used by the Windows .exe |
 | `main.py`, `buildozer.spec` | Android (APK) entry point and build settings |
 | `calculator.db` / `calculator.log` | Saved data / error details (the log shows the full traceback of any crash) |

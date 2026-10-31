@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Terms of Use - {{ name }}{% endblock %}
+{% block content %}
+<h3>📄 Terms of Use</h3>
+<p class="text-muted">{{ name }} by {{ cfg.business }} · Last updated: 30 October 2026</p>
+<div class="card card-body mb-4">
+  <h5>1. Acceptance</h5><p>By using {{ name }} you agree to these terms. If you do not agree, please do not use the app.</p>
+  <h5>2. What the app is for</h5><p>The app helps you estimate profit and loss from the figures you enter. Results are estimates only and are not accounting, tax, legal or financial advice.</p>
+  <h5>3. Your responsibility</h5><p>The results are only as accurate as the information you enter. Please check your figures and keep your own backups, for example by exporting reports regularly.</p>
+  <h5>4. Your data</h5><p>Your data stays on your device as described in the <a href="{{ url_for('privacy') }}">Privacy Policy</a>. You can delete it at any time in Settings.</p>
+  <h5>5. No warranty</h5><p>The app is provided "as is", without any promise that it will be error-free or always available. To the extent allowed by law, the developer is not responsible for losses that result from using it or from decisions made using its results.</p>
+  <h5>6. Ownership</h5><p>{{ name }} was developed by Gift Meza for Mezaneyo Online Shop (MOS) as an educational project for COM 412: E-Business Applications. The source code may be used for learning.</p>
+  <h5>7. Changes</h5><p>These terms may be updated. Continuing to use the app means you accept the updated terms.</p>
+  <h5>8. Contact</h5><p class="mb-0">Mezaneyo Online Shop (MOS), WhatsApp: +265 995 514 049.</p>
+</div>
+{% endblock %}
