@@ -1,9 +1,10 @@
 [app]
 title = Business Calculator
+icon.filename = %(source.dir)s/icon.png
 package.name = businesscalculator
 package.domain = org.com412
 source.dir = .
-source.include_exts = py,html,css
+source.include_exts = py,html,css,png
 source.exclude_dirs = .github,bin,dist,build,__pycache__,.buildozer
 version = 1.0
 requirements = python3,sqlite3,flask,werkzeug,jinja2,markupsafe,itsdangerous,click,blinker

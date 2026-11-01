@@ -6,19 +6,20 @@
   <title>{% block title %}{{ name }} · {{ cfg.business }}{% endblock %}</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
         onerror="this.onerror=null;this.href='{{ url_for('static', filename='bootstrap.min.css') }}'">
+  <link rel="icon" href="{{ url_for('static', filename='icon.png') }}">
   <style>body{background:#f4f6f5}.navbar{background:#0b5345}</style>
   <script>const CUR = {{ cfg.currency|tojson }};</script>
 </head>
 <body>
 <nav class="navbar navbar-dark"><div class="container">
-  <a class="navbar-brand lh-sm" href="{{ url_for('index') }}">🧮 {{ name }}<br><small class="fw-normal opacity-75" style="font-size:.7rem">by {{ cfg.business }}</small></a>
+  <a class="navbar-brand lh-sm" href="{{ url_for('index') }}"><img src="{{ url_for('static', filename='icon.png') }}" alt="" width="34" height="34" class="rounded-3 me-1" style="vertical-align:-10px">{{ name }}<br><small class="fw-normal opacity-75" style="font-size:.7rem">by {{ cfg.business }}</small></a>
   <div class="d-flex align-items-center gap-2">
     <div class="dropdown"><button class="btn btn-outline-light btn-sm dropdown-toggle" data-bs-toggle="dropdown">⬇ Export</button>
       <ul class="dropdown-menu dropdown-menu-end">
-        <li><a class="dropdown-item" href="{{ url_for('export', fmt='xlsx') }}">📗 Excel (.xlsx)</a></li>
-        <li><a class="dropdown-item" href="{{ url_for('export', fmt='pdf') }}">📕 PDF (.pdf)</a></li>
-        <li><a class="dropdown-item" href="{{ url_for('export', fmt='docx') }}">📘 Word (.docx)</a></li>
-        <li><a class="dropdown-item" href="{{ url_for('export', fmt='csv') }}">📄 CSV</a></li>
+        <li><a class="dropdown-item" href="{{ url_for('share', fmt='xlsx') }}">📗 Excel (.xlsx)</a></li>
+        <li><a class="dropdown-item" href="{{ url_for('share', fmt='pdf') }}">📕 PDF (.pdf)</a></li>
+        <li><a class="dropdown-item" href="{{ url_for('share', fmt='docx') }}">📘 Word (.docx)</a></li>
+        <li><a class="dropdown-item" href="{{ url_for('share', fmt='csv') }}">📄 CSV</a></li>
       </ul></div>
     <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#nav"><span class="navbar-toggler-icon"></span></button>
   </div>

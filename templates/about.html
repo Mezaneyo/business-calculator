@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 {% block title %}About - {{ name }}{% endblock %}
 {% block content %}
-<h3>ℹ️ About {{ name }}</h3>
-<p class="text-muted">Version {{ version }}</p>
+<div class="text-center mb-3"><img src="{{ url_for('static', filename='icon.png') }}" alt="{{ name }} logo" width="96" height="96" class="rounded-4 shadow-sm"></div>
+<h3 class="text-center">About {{ name }}</h3>
+<p class="text-muted text-center">Version {{ version }}</p>
 <div class="card card-body mb-3"><h5>What it does</h5>
   <p class="mb-2">{{ name }} helps small traders see whether they are making a profit or a loss, for each item and for the whole business.</p>
   <ul class="mb-0"><li>Add your items with their buying and selling prices</li><li>Record how much you bought and how much you sold</li>

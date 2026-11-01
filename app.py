@@ -411,6 +411,31 @@ EXPORTS = {"xlsx": (make_xlsx, "application/vnd.openxmlformats-officedocument.sp
            "pdf": (make_pdf, "application/pdf"), "csv": (make_csv, "text/csv")}
 
 
+def open_in_browser(url):
+    """Android app only: open the phone's browser, which can download files (the app's own web view cannot)."""
+    from jnius import autoclass
+    Intent, Uri = autoclass("android.content.Intent"), autoclass("android.net.Uri")
+    activity = autoclass("org.kivy.android.PythonActivity").mActivity
+    activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+
+
+@app.route("/share/<fmt>")
+def share(fmt):
+    """Export buttons point here. Laptop/browser: normal download. Android app: download through the browser."""
+    if fmt not in EXPORTS:
+        abort(404)
+    target = url_for("export", fmt=fmt, _external=True)
+    if not os.environ.get("ANDROID_PRIVATE"):
+        return redirect(target)
+    try:
+        open_in_browser(target)
+        flash("Your browser opened to download the file. Check your Downloads folder.", "success")
+    except Exception:
+        logging.exception("Could not open the browser for the export")
+        flash(f"To download, open Chrome and go to {target} while this app is running.", "warning")
+    return redirect(request.referrer or url_for("settings"))
+
+
 @app.route("/export/<fmt>")
 def export(fmt):
     if fmt not in EXPORTS:

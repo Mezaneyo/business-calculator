@@ -3,7 +3,7 @@ REM Run this on a Windows laptop that has Python installed (python.org, tick "Ad
 echo Installing tools...
 python -m pip install --upgrade pip flask pyinstaller
 echo Building the app...
-python -m PyInstaller --noconfirm --onefile --name BusinessCalculator --add-data "templates;templates" desktop.py
+python -m PyInstaller --noconfirm --onefile --name BusinessCalculator --icon icon.ico --add-data "templates;templates" --add-data "static;static" desktop.py
 echo.
 echo Done! Your app is here: dist\BusinessCalculator.exe
 pause

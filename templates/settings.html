@@ -16,10 +16,10 @@
 <div class="card mb-3"><div class="card-header fw-bold">⬇ Export your report</div><div class="card-body">
   <p class="small text-muted">Download the profit and loss report with all items, totals and expenses.</p>
   <div class="d-grid gap-2">
-    <a class="btn btn-outline-success" href="{{ url_for('export', fmt='xlsx') }}">📗 Excel (.xlsx)</a>
-    <a class="btn btn-outline-success" href="{{ url_for('export', fmt='pdf') }}">📕 PDF (.pdf)</a>
-    <a class="btn btn-outline-success" href="{{ url_for('export', fmt='docx') }}">📘 Word (.docx)</a>
-    <a class="btn btn-outline-success" href="{{ url_for('export', fmt='csv') }}">📄 CSV</a>
+    <a class="btn btn-outline-success" href="{{ url_for('share', fmt='xlsx') }}">📗 Excel (.xlsx)</a>
+    <a class="btn btn-outline-success" href="{{ url_for('share', fmt='pdf') }}">📕 PDF (.pdf)</a>
+    <a class="btn btn-outline-success" href="{{ url_for('share', fmt='docx') }}">📘 Word (.docx)</a>
+    <a class="btn btn-outline-success" href="{{ url_for('share', fmt='csv') }}">📄 CSV</a>
   </div>
 </div></div>
 <div class="card mb-3 border-danger"><div class="card-header fw-bold text-danger">Your data</div><div class="card-body">

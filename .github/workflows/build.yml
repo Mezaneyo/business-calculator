@@ -10,7 +10,7 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
       - run: python -m pip install flask pyinstaller
-      - run: python -m PyInstaller --noconfirm --onefile --name BusinessCalculator --add-data "templates;templates" desktop.py
+      - run: python -m PyInstaller --noconfirm --onefile --name BusinessCalculator --icon icon.ico --add-data "templates;templates" --add-data "static;static" desktop.py
       - uses: actions/upload-artifact@v4
         with: { name: BusinessCalculator-exe, path: dist/BusinessCalculator.exe }
   apk:
